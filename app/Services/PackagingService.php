@@ -93,8 +93,10 @@ class PackagingService
             'code' => 200,
         ];
         $boxes = $this->sortedBoxes();
-        $products = $request->input('products');
-
+        
+    
+        $products = $request->products ?? $request->input('products');
+        
         $packedBoxes = [];
         $unfitProducts = [];
         while (!empty($products)) {
