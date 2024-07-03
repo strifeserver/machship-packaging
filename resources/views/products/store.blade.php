@@ -65,7 +65,6 @@
                                         {{ $product['length'] }}x{{ $product['width'] }}x{{ $product['height'] }},
                                         Weight {{ $product['weight'] }}kg, Quantity {{ $product['quantity'] }}
                                         <br>
-                                        {{ $product['remarks'] }}
                                     </li>
                                 @endforeach
                             </ul>

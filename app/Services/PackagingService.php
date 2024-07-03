@@ -86,49 +86,65 @@ class PackagingService
         return $products;
     }
 
-public function processPackaging($request)
-{
-    $returns = [
-        'status' => 'success',
-        'code' => 200,
-    ];
-    $boxes = $this->sortedBoxes();
-    $products = $request->input('products');
+    public function processPackaging($request)
+    {
+        $returns = [
+            'status' => 'success',
+            'code' => 200,
+        ];
+        $boxes = $this->sortedBoxes();
+        $products = $request->input('products');
 
-    $packedBoxes = [];
-    $unfitProducts = [];
-    
-    foreach ($products as $product) {
-        $productPacked = false;
-        
-        foreach ($boxes as $box) {
-            if ($product['weight'] <= $box['weight_limit'] &&
-                $product['length'] <= $box['length'] &&
-                $product['width'] <= $box['width'] &&
-                $product['height'] <= $box['height']) {
-                
-      
-                $packedBoxes[] = ['box' => $box, 'products' => [$product]];
-                $productPacked = true;
-                break;
+        $packedBoxes = [];
+        $unfitProducts = [];
+        while (!empty($products)) {
+            list($totalVolume, $totalWeight) = $this->calculateTotalVolumeAndWeight($products);
+
+            $allProductsFitInOneBox = false;
+
+            foreach ($boxes as $box) {
+                if ($totalWeight <= $box['weight_limit'] && $totalVolume <= ($box['length'] * $box['width'] * $box['height']) && $this->dimensionsFit($products, $box)
+                ) {
+                    $packedBoxes[] = ['box' => $box, 'products' => $products];
+                    $allProductsFitInOneBox = true;
+                    $products = []; ## CLEAR
+                    break;
+                }
+            }
+
+            if (!$allProductsFitInOneBox) {
+                ##Take the largest product and allocate it to its own box.
+                $sortProducts = $this->sortProducts($products);
+                $largestProduct = array_shift($products);
+
+                $productPacked = false;
+                foreach ($boxes as $box) {
+                    if (
+                        $largestProduct['weight'] <= $box['weight_limit'] &&
+                        ($largestProduct['length'] * $largestProduct['width'] * $largestProduct['height']) <= ($box['length'] * $box['width'] * $box['height']) &&
+                        $this->dimensionsFit([$largestProduct], $box)
+                    ) {
+
+                        $packedBoxes[] = ['box' => $box, 'products' => [$largestProduct]];
+                        $productPacked = true;
+                        break;
+                    }
+                }
+
+                if (!$productPacked) {
+                    $unfitProducts[] = $largestProduct;
+                }
             }
         }
-        
-        if (!$productPacked) {
-            $unfitProducts[] = $product;
+
+        $returns['packedBoxes'] = $packedBoxes;
+        $returns['unfitProducts'] = $unfitProducts;
+
+        if (count($unfitProducts) > 0) {
+            $returns['status'] = 'error';
+            $returns['code'] = 400;
         }
+        return $returns;
     }
-    
-    $returns['packedBoxes'] = $packedBoxes;
-    $returns['unfitProducts'] = $unfitProducts;
-
-    if (count($unfitProducts) > 0) {
-        $returns['status'] = 'error';
-        $returns['code'] = 400;
-    }
-    
-    return $returns;
-}
-
 
 }
