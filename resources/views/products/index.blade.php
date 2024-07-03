@@ -36,6 +36,7 @@
                         <th>Width (cm)</th>
                         <th>Height (cm)</th>
                         <th>Weight Limit (kg)</th>
+                        <th>Total Volume</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,6 +47,7 @@
                             <td>{{ $box['width'] }}</td>
                             <td>{{ $box['height'] }}</td>
                             <td>{{ $box['weight_limit'] }}</td>
+                            <td>{{ $box['total_volume'] }}</td>
                         </tr>
                     @endforeach
                 </tbody>

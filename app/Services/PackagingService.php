@@ -55,8 +55,6 @@ class PackagingService
     }
     ## CALCULATE TOTAL AND WEIGHT OF A PRODUCT
 
-
-
     ## check if all individual product dimensions fit within the box dimensions
     public function dimensionsFit($products, $box)
     {
@@ -72,48 +70,65 @@ class PackagingService
         return true;
     }
 
-
-
-    public function processPackaging($request)
+    public function sortProducts($products)
     {
-
-
-        $boxes = $this->sortedBoxes();
-        $products = $request->input('products');
-
-        $packedBoxes = [];
-        $unfitProducts = [];
-        $whileHandlerStopper = 0; #DEBUGSTOP
-        while (!empty($products)) {
-            list($totalVolume, $totalWeight) = $this->calculateTotalVolumeAndWeight($products);
-
-
-            $allProductsFitInOneBox = false;
-
-            foreach ($boxes as $box) {
-                if ($totalWeight <= $box['weight_limit'] && $totalVolume <= ($box['length'] * $box['width'] * $box['height']) && $this->dimensionsFit($products, $box)
-                ) {
-                    $packedBoxes[] = ['box' => $box, 'products' => $products];
-                    $products = []; ## CLEAR 
-                    break;
-                }
-            }
-
-            $whileHandlerStopper++;
-            if($whileHandlerStopper == 15){
-                echo 'asdasd';
-                print_r($products);
-                return false;
-            }
-            
+        ## Calculate and add total_volume to each product
+        foreach ($products as $key => $product) {
+            $total_volume = $product['length'] * $product['width'] * $product['height'];
+            $products[$key]['total_volume'] = $total_volume;
         }
 
-        echo 'adasd';
-        print_r($packedBoxes);
-        exit;
-        
-        exit;
+        ## Sort products by total_volume (Descending order)
+        usort($products, function ($a, $b) {
+            return ($b['total_volume'] ?? 0) - ($a['total_volume'] ?? 0);
+        });
 
+        return $products;
     }
+
+public function processPackaging($request)
+{
+    $returns = [
+        'status' => 'success',
+        'code' => 200,
+    ];
+    $boxes = $this->sortedBoxes();
+    $products = $request->input('products');
+
+    $packedBoxes = [];
+    $unfitProducts = [];
+    
+    foreach ($products as $product) {
+        $productPacked = false;
+        
+        foreach ($boxes as $box) {
+            if ($product['weight'] <= $box['weight_limit'] &&
+                $product['length'] <= $box['length'] &&
+                $product['width'] <= $box['width'] &&
+                $product['height'] <= $box['height']) {
+                
+      
+                $packedBoxes[] = ['box' => $box, 'products' => [$product]];
+                $productPacked = true;
+                break;
+            }
+        }
+        
+        if (!$productPacked) {
+            $unfitProducts[] = $product;
+        }
+    }
+    
+    $returns['packedBoxes'] = $packedBoxes;
+    $returns['unfitProducts'] = $unfitProducts;
+
+    if (count($unfitProducts) > 0) {
+        $returns['status'] = 'error';
+        $returns['code'] = 400;
+    }
+    
+    return $returns;
+}
+
 
 }

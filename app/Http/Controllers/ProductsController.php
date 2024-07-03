@@ -15,19 +15,15 @@ class ProductsController extends Controller
     public function index()
     {
 
-        $boxes = $this->service->boxes();
+        $boxes = $this->service->sortedBoxes();
         return view('products.index', ['boxes' => $boxes]);
 
     }
 
     public function store(request $request)
     {
-        echo '<pre>';
         $processPackaging = $this->service->processPackaging($request);
-
-        print_r($processPackaging);
-        exit;
-
+        return view('products.store', $processPackaging);
 
     }
 
